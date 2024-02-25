@@ -49,18 +49,24 @@ func extractKey(src []byte) (key string, rest []byte, err error) {
 }
 
 func extractValue(src []byte) (value string, err error) {
-	if bytes.Contains(src, []byte(inlineComment)) {
-		src = bytes.Split(src, []byte(inlineComment))[0]
-		src = bytes.TrimRightFunc(src, unicode.IsSpace)
+	if len(src) == 0 {
+		return
 	}
 
-	isQuoted, quote, err := isQuoted(src)
+	isQuoted, endOfQuote, quote, err := isQuoted(src)
 	if err != nil {
 		return
 	}
 
 	if isQuoted {
-		src = bytes.TrimFunc(src, isRuneFunc(quote))
+		// no need in removing inline comment in the "quoted" case
+		// as far as it was omitted in slicing up to `endOfQuote` value
+		src = bytes.ReplaceAll(src[1:endOfQuote], []byte{'\\', quote}, []byte{quote})
+	} else {
+		if bytes.Contains(src, []byte(inlineComment)) {
+			src = bytes.Split(src, []byte(inlineComment))[0]
+			src = bytes.TrimRightFunc(src, unicode.IsSpace)
+		}
 	}
 
 	value = string(src)
@@ -71,16 +77,29 @@ func isRuneFunc(target rune) func(r rune) bool {
 	return func(r rune) bool { return target == r }
 }
 
-func isQuoted(src []byte) (v bool, quote rune, err error) {
+func isQuoted(src []byte) (v bool, endOfQuote int, quote byte, err error) {
 	first := rune(src[0])
 	switch first {
 	case '"', '\'':
-		if first != rune(src[len(src)-1]) {
-			err = fmt.Errorf("unterminated value near %q", string(src))
-			return
+		offset := 1
+		for {
+			cutset := src[offset:]
+			endOfQuote = bytes.IndexFunc(cutset, isRuneFunc(first))
+
+			if endOfQuote == -1 {
+				err = fmt.Errorf("unterminated quoted value near %q", string(src))
+				return
+			}
+			if cutset[endOfQuote-1] != '\\' {
+				break
+			}
+
+			// + 1 -> cuts found quote symbol?
+			offset = endOfQuote + offset + 1
 		}
+		quote = byte(first)
+		endOfQuote = endOfQuote + offset
 		v = true
-		quote = first
 		return
 	default:
 		return
