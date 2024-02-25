@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	exportPrefix  = "export "
+	exportPrefix  = "export"
 	inlineComment = " #"
 )
 
@@ -39,7 +39,7 @@ func parse(buf *bytes.Buffer) (envMap map[string]string, err error) {
 func extractKey(src []byte) (key string, rest []byte, err error) {
 	endOfKey := bytes.IndexByte(src, '=')
 	if endOfKey == -1 {
-		err = fmt.Errorf("invalid env variable format (line: %q)\n", string(src))
+		err = fmt.Errorf("invalid env variable format in line %q\n", string(src))
 		return
 	}
 
@@ -88,7 +88,10 @@ func isQuoted(src []byte) (v bool, quote rune, err error) {
 }
 
 func sanitizeKey(key []byte) (sanitized []byte) {
-	sanitized, _ = bytes.CutPrefix(key, []byte(exportPrefix))
+	sanitized, found := bytes.CutPrefix(key, []byte(exportPrefix))
+	if found {
+		sanitized = bytes.TrimLeftFunc(sanitized, unicode.IsSpace)
+	}
 	return
 }
 
