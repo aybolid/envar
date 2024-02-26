@@ -7,6 +7,19 @@ import (
 	"testing"
 )
 
+func compare(t *testing.T, got map[string]string, expected map[string]string) {
+	if len(got) != len(expected) {
+		t.Error("len(got) != len(expected)")
+	}
+
+	for k, v := range got {
+		expectedValue := expected[k]
+		if v != expectedValue {
+			t.Errorf("missmatch for %q key: expected %q, got %q\n", k, expectedValue, v)
+		}
+	}
+}
+
 func TestDefaultOrFilenames(t *testing.T) {
 	expected := [][]string{
 		{".env"},
@@ -63,4 +76,26 @@ func TestNoArgsOverloadsDefault(t *testing.T) {
 	if pathErr == nil || pathErr.Path != ".env" || pathErr.Op != "open" {
 		t.Error("didn't try to open .env file while no args were provided")
 	}
+}
+
+func TestComments(t *testing.T) {
+	envFile := "test/fixtures/comments.env"
+	expected := map[string]string{
+		"foo":    "bar",
+		"bar":    "foo",
+		"baz":    "foo#bar",
+		"fizz":   "foo",
+		"foobar": "foo #bar",
+	}
+
+	buf, err := getFileBuffer(envFile)
+	if err != nil {
+		t.Error(err)
+	}
+	envMap, err := parse(&buf)
+	if err != nil {
+		t.Error(err)
+	}
+
+	compare(t, envMap, expected)
 }
