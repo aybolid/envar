@@ -104,8 +104,14 @@ func isQuoted(src []byte) (v bool, endOfQuote int, quote byte, err error) {
 				err = fmt.Errorf("unterminated quoted value near %q", string(src))
 				return
 			}
-			if cutset[endOfQuote-1] != '\\' {
-				break
+			if len(cutset) == 1 {
+				if cutset[endOfQuote] != '\\' {
+					break
+				}
+			} else {
+				if cutset[endOfQuote-1] != '\\' {
+					break
+				}
 			}
 
 			// + 1 -> cuts found quote symbol
@@ -121,10 +127,8 @@ func isQuoted(src []byte) (v bool, endOfQuote int, quote byte, err error) {
 }
 
 func sanitizeKey(key []byte) (sanitized []byte) {
-	sanitized, found := bytes.CutPrefix(key, []byte(exportPrefix))
-	if found {
-		sanitized = bytes.TrimFunc(sanitized, unicode.IsSpace)
-	}
+	sanitized, _ = bytes.CutPrefix(key, []byte(exportPrefix))
+	sanitized = bytes.TrimFunc(sanitized, unicode.IsSpace)
 	return
 }
 

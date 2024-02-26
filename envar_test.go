@@ -14,8 +14,10 @@ func compare(t *testing.T, got map[string]string, expected map[string]string) {
 
 	for k, v := range got {
 		expectedValue := expected[k]
-		if v != expectedValue {
-			t.Errorf("missmatch for %q key: expected %q, got %q\n", k, expectedValue, v)
+		if v == expectedValue {
+			t.Logf("[%s]: expected: %q, got: %q\n", k, expectedValue, v)
+		} else {
+			t.Errorf("\033[31m[%s]: expected: %q, got: %q\033[0m\n", k, expectedValue, v)
 		}
 	}
 }
@@ -105,6 +107,32 @@ func TestExported(t *testing.T) {
 	expected := map[string]string{
 		"OPTION_A": "2",
 		"OPTION_B": "\\n",
+	}
+
+	buf, err := getFileBuffer(envFile)
+	if err != nil {
+		t.Error(err)
+	}
+	envMap, err := parse(&buf)
+	if err != nil {
+		t.Error(err)
+	}
+
+	compare(t, envMap, expected)
+}
+
+func TestQuoted(t *testing.T) {
+	envFile := "test/fixtures/quoted.env"
+	expected := map[string]string{
+		"OPTION_A": "1",
+		"OPTION_B": "2",
+		"OPTION_C": "",
+		"OPTION_D": "\\n",
+		"OPTION_E": "1",
+		"OPTION_F": "2",
+		"OPTION_G": "",
+		// "OPTION_H": "\n", // FIXME
+		"OPTION_I": "echo 'asd'",
 	}
 
 	buf, err := getFileBuffer(envFile)
