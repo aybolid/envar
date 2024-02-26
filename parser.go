@@ -108,7 +108,7 @@ func isQuoted(src []byte) (v bool, endOfQuote int, quote byte, err error) {
 				break
 			}
 
-			// + 1 -> cuts found quote symbol?
+			// + 1 -> cuts found quote symbol
 			offset = endOfQuote + offset + 1
 		}
 		quote = byte(first)

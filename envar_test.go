@@ -1,6 +1,7 @@
 package envar
 
 import (
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -31,6 +32,35 @@ func TestDefaultOrFilenames(t *testing.T) {
 func TestLoadNonExistingFile(t *testing.T) {
 	err := Load(".env.filethatdoesnotexist")
 	if err == nil {
-		t.Error("loading file that doesn't exist must return error")
+		t.Error("loading file that doesn't exist must return an error")
+	}
+}
+
+func TestOverloadNonExistingFile(t *testing.T) {
+	err := Overload(".env.filethatdoesnotexist")
+	if err == nil {
+		t.Error("loading file that doesn't exist must return an error")
+	}
+}
+
+func TestNoArgsLoadsDefault(t *testing.T) {
+	err := Load()
+	pathErr, ok := err.(*os.PathError)
+	if !ok {
+		t.Error("failed to assert error type")
+	}
+	if pathErr == nil || pathErr.Path != ".env" || pathErr.Op != "open" {
+		t.Error("didn't try to open .env file while no args were provided")
+	}
+}
+
+func TestNoArgsOverloadsDefault(t *testing.T) {
+	err := Overload()
+	pathErr, ok := err.(*os.PathError)
+	if !ok {
+		t.Error("failed to assert error type")
+	}
+	if pathErr == nil || pathErr.Path != ".env" || pathErr.Op != "open" {
+		t.Error("didn't try to open .env file while no args were provided")
 	}
 }
