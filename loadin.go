@@ -5,6 +5,7 @@ import (
 	"reflect"
 )
 
+// TODO: Improve!!!
 func loadInStruct(envMap map[string]string, target any) (err error) {
 	value := reflect.ValueOf(target)
 	if value.Kind() != reflect.Pointer || value.Elem().Kind() != reflect.Struct {
@@ -15,6 +16,7 @@ func loadInStruct(envMap map[string]string, target any) (err error) {
 
 	for key, value := range envMap {
 		field := structValue.FieldByNameFunc(func(s string) bool {
+			// TODO: Improve field identification?
 			return s == key
 		})
 		if !field.IsValid() {

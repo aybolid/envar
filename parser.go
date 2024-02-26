@@ -12,7 +12,7 @@ const (
 	inlineComment = " #"
 )
 
-var escapedChars = [...]byte{'$'}
+var escapedChars = [...]byte{'$'} // Do I need this?
 
 func parse(buf *bytes.Buffer) (envMap map[string]string, err error) {
 	lines, err := getValidLines(buf)
