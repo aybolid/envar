@@ -15,6 +15,19 @@ func Load(filenames ...string) (err error) {
 	return loadFiles(filenames, false)
 }
 
+func LoadIn(filename string, target interface{}) (err error) {
+	buf, err := getFileBuffer(filename)
+	if err != nil {
+		return err
+	}
+	envMap, err := parse(&buf)
+	if err != nil {
+		return err
+	}
+
+	return loadInStruct(envMap, target)
+}
+
 func loadFiles(filenames []string, overload bool) (err error) {
 	filenames = defaultOrFilenames(filenames)
 

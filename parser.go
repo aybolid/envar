@@ -12,6 +12,8 @@ const (
 	inlineComment = " #"
 )
 
+var escapedChars = [...]byte{'$'}
+
 func parse(buf *bytes.Buffer) (envMap map[string]string, err error) {
 	lines, err := getValidLines(buf)
 	if err != nil {
@@ -44,6 +46,10 @@ func extractKey(src []byte) (key string, rest []byte, err error) {
 	}
 
 	key = string(sanitizeKey(src[:endOfKey]))
+	if len(key) == 0 {
+		err = fmt.Errorf("empty key in line %q\n", string(src))
+	}
+
 	rest = bytes.TrimFunc(src[endOfKey+1:], unicode.IsSpace)
 	return
 }
@@ -69,7 +75,15 @@ func extractValue(src []byte) (value string, err error) {
 		}
 	}
 
-	value = string(src)
+	value = string(handleEscapedSequences(src))
+	return
+}
+
+func handleEscapedSequences(src []byte) (formatted []byte) {
+	formatted = src
+	for _, char := range escapedChars {
+		formatted = bytes.ReplaceAll(formatted, []byte{'\\', char}, []byte{char})
+	}
 	return
 }
 
@@ -109,7 +123,7 @@ func isQuoted(src []byte) (v bool, endOfQuote int, quote byte, err error) {
 func sanitizeKey(key []byte) (sanitized []byte) {
 	sanitized, found := bytes.CutPrefix(key, []byte(exportPrefix))
 	if found {
-		sanitized = bytes.TrimLeftFunc(sanitized, unicode.IsSpace)
+		sanitized = bytes.TrimFunc(sanitized, unicode.IsSpace)
 	}
 	return
 }
