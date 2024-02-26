@@ -99,3 +99,22 @@ func TestComments(t *testing.T) {
 
 	compare(t, envMap, expected)
 }
+
+func TestExported(t *testing.T) {
+	envFile := "test/fixtures/exported.env"
+	expected := map[string]string{
+		"OPTION_A": "2",
+		"OPTION_B": "\\n",
+	}
+
+	buf, err := getFileBuffer(envFile)
+	if err != nil {
+		t.Error(err)
+	}
+	envMap, err := parse(&buf)
+	if err != nil {
+		t.Error(err)
+	}
+
+	compare(t, envMap, expected)
+}
