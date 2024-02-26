@@ -8,28 +8,14 @@ import (
 )
 
 func Overload(filenames ...string) (err error) {
-	filenames = defaultOrFilenames(filenames)
-
-	for _, filename := range filenames {
-		buf, err := getFileBuffer(filename)
-		if err != nil {
-			return err
-		}
-		envMap, err := parse(&buf)
-		if err != nil {
-			return err
-		}
-
-		err = loadEnv(envMap, true)
-		if err != nil {
-			return err
-		}
-	}
-
-	return
+	return loadFiles(filenames, true)
 }
 
 func Load(filenames ...string) (err error) {
+	return loadFiles(filenames, false)
+}
+
+func loadFiles(filenames []string, overload bool) (err error) {
 	filenames = defaultOrFilenames(filenames)
 
 	for _, filename := range filenames {
@@ -42,7 +28,7 @@ func Load(filenames ...string) (err error) {
 			return err
 		}
 
-		err = loadEnv(envMap, false)
+		err = loadEnv(envMap, overload)
 		if err != nil {
 			return err
 		}
@@ -53,15 +39,15 @@ func Load(filenames ...string) (err error) {
 
 func loadEnv(envMap map[string]string, overload bool) (err error) {
 	rawEnv := os.Environ()
-	envStateMap := make(map[string]bool)
+	existingEnv := make(map[string]bool)
 
 	for _, envEntry := range rawEnv {
 		key := strings.Split(envEntry, "=")[0]
-		envStateMap[key] = true
+		existingEnv[key] = true
 	}
 
 	for key, value := range envMap {
-		if !envStateMap[key] || overload {
+		if !existingEnv[key] || overload {
 			err := os.Setenv(key, value)
 			if err != nil {
 				return err
