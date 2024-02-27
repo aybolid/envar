@@ -1,11 +1,16 @@
 package envar
 
 import (
+	"fmt"
 	"os"
 	"slices"
 	"strings"
 	"testing"
 )
+
+func logError(t *testing.T, msg string) {
+	t.Error("\033[31m" + msg + "\033[0m")
+}
 
 func compare(t *testing.T, got map[string]string, expected map[string]string) {
 	if len(got) != len(expected) {
@@ -17,7 +22,8 @@ func compare(t *testing.T, got map[string]string, expected map[string]string) {
 		if v == expectedValue {
 			t.Logf("[%s]: expected: %q, got: %q\n", k, expectedValue, v)
 		} else {
-			t.Errorf("\033[31m[%s]: expected: %q, got: %q\033[0m\n", k, expectedValue, v)
+			errMsg := fmt.Sprintf("[%s]: expected: %q, got: %q", k, expectedValue, v)
+			logError(t, errMsg)
 		}
 	}
 }
@@ -39,7 +45,8 @@ func TestDefaultOrFilenames(t *testing.T) {
 		if !slices.Equal(e, c) {
 			formattedE := "[" + strings.Join(e, ", ") + "]"
 			formattedC := "[" + strings.Join(c, ", ") + "]"
-			t.Errorf("\nexpected: %s\ngot: %s\n", formattedE, formattedC)
+			errMsg := fmt.Sprintf("\nexpected: %s\ngot: %s", formattedE, formattedC)
+			logError(t, errMsg)
 		}
 	}
 }
@@ -47,14 +54,14 @@ func TestDefaultOrFilenames(t *testing.T) {
 func TestLoadNonExistingFile(t *testing.T) {
 	err := Load(".env.filethatdoesnotexist")
 	if err == nil {
-		t.Error("loading file that doesn't exist must return an error")
+		logError(t, "loading file that doesn't exist must return an error")
 	}
 }
 
 func TestOverloadNonExistingFile(t *testing.T) {
 	err := Overload(".env.filethatdoesnotexist")
 	if err == nil {
-		t.Error("loading file that doesn't exist must return an error")
+		logError(t, "loading file that doesn't exist must return an error")
 	}
 }
 
@@ -62,10 +69,10 @@ func TestNoArgsLoadsDefault(t *testing.T) {
 	err := Load()
 	pathErr, ok := err.(*os.PathError)
 	if !ok {
-		t.Error("failed to assert error type")
+		logError(t, "failed to assert error type")
 	}
 	if pathErr == nil || pathErr.Path != ".env" || pathErr.Op != "open" {
-		t.Error("didn't try to open .env file while no args were provided")
+		logError(t, "didn't try to open .env file while no args were provided")
 	}
 }
 
@@ -73,10 +80,10 @@ func TestNoArgsOverloadsDefault(t *testing.T) {
 	err := Overload()
 	pathErr, ok := err.(*os.PathError)
 	if !ok {
-		t.Error("failed to assert error type")
+		logError(t, "failed to assert error type")
 	}
 	if pathErr == nil || pathErr.Path != ".env" || pathErr.Op != "open" {
-		t.Error("didn't try to open .env file while no args were provided")
+		logError(t, "didn't try to open .env file while no args were provided")
 	}
 }
 
@@ -181,6 +188,7 @@ func TestParsingError(t *testing.T) {
 	}
 	envMap, err := parse(&buf)
 	if err == nil {
-		t.Errorf("expected error, got %v", envMap)
+		errMsg := fmt.Sprintf("expected error, got %v", envMap)
+		logError(t, errMsg)
 	}
 }
