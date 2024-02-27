@@ -171,3 +171,16 @@ func TestPlain(t *testing.T) {
 
 	compare(t, envMap, expected)
 }
+
+func TestParsingError(t *testing.T) {
+	envFile := "test/fixtures/invalid.env"
+
+	buf, err := getFileBuffer(envFile)
+	if err != nil {
+		t.Error(err)
+	}
+	envMap, err := parse(&buf)
+	if err == nil {
+		t.Errorf("expected error, got %v", envMap)
+	}
+}
