@@ -146,3 +146,28 @@ func TestQuoted(t *testing.T) {
 
 	compare(t, envMap, expected)
 }
+
+func TestPlain(t *testing.T) {
+	envFile := "test/fixtures/plain.env"
+	expected := map[string]string{
+		"OPTION_A": "1",
+		"OPTION_B": "2",
+		"OPTION_C": "3",
+		"OPTION_D": "4",
+		"OPTION_E": "5",
+		"OPTION_F": "",
+		"OPTION_G": "",
+		"OPTION_H": "1 2",
+	}
+
+	buf, err := getFileBuffer(envFile)
+	if err != nil {
+		t.Error(err)
+	}
+	envMap, err := parse(&buf)
+	if err != nil {
+		t.Error(err)
+	}
+
+	compare(t, envMap, expected)
+}
