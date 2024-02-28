@@ -8,63 +8,59 @@ import (
 	"strings"
 )
 
-func loadInStruct(envMap map[string]string, target any) (err error) {
+func loadInStruct(envMap map[string]string, target interface{}) error {
 	targetValue := reflect.ValueOf(target)
-	if targetValue.Kind() != reflect.Pointer || targetValue.Elem().Kind() != reflect.Struct {
-		err = fmt.Errorf("target must be a pointer to a struct")
+	if targetValue.Kind() != reflect.Ptr || targetValue.Elem().Kind() != reflect.Struct {
+		return errors.New("target must be a pointer to a struct")
 	}
 
 	targetStruct := targetValue.Elem()
 
 	for key, value := range envMap {
-		field := targetStruct.FieldByNameFunc(func(s string) bool {
-			return s == key
-		})
-		if !field.IsValid() {
+		field := targetStruct.FieldByName(key)
+		if !field.IsValid() || !field.CanSet() {
 			continue
 		}
 
-		if !field.CanSet() {
-			err = fmt.Errorf("field %q is not settable", key)
-			return
-		}
-
-		if reflect.ValueOf(value).Type() != field.Type() {
-			converted, err := convertValue(value, field.Type())
-			if err != nil {
-				return err
-			}
-			field.Set(reflect.ValueOf(converted))
-		} else {
-			field.Set(reflect.ValueOf(value))
+		if err := setFieldValue(field, value); err != nil {
+			return fmt.Errorf("setting field %q: %v", key, err)
 		}
 	}
 
-	return
+	return nil
 }
 
-func convertValue(value string, fieldType reflect.Type) (converted any, err error) {
-	switch fieldType.String() {
-	case "int":
-		converted, err = strconv.Atoi(value)
-		return
-	case "[]string":
-		converted = strings.Split(value, ",")
-		return
-	case "[]int":
-		convertedSlice := []int{}
-		for _, element := range strings.Split(value, ",") {
-			parsed, err := strconv.Atoi(element)
-			if err != nil {
-				return nil, err
-			}
-			convertedSlice = append(convertedSlice, parsed)
+func setFieldValue(field reflect.Value, value string) error {
+	switch field.Kind() {
+	case reflect.String:
+		field.SetString(value)
+	case reflect.Int:
+		val, err := strconv.Atoi(value)
+		if err != nil {
+			return err
 		}
-		converted = convertedSlice
-		fmt.Println(converted)
-		return
+		field.SetInt(int64(val))
+	case reflect.Slice:
+		elemType := field.Type().Elem()
+		switch elemType.Kind() {
+		case reflect.String:
+			field.Set(reflect.ValueOf(strings.Split(value, ",")))
+		case reflect.Int:
+			strValues := strings.Split(value, ",")
+			slice := reflect.MakeSlice(field.Type(), len(strValues), len(strValues))
+			for i, str := range strValues {
+				val, err := strconv.Atoi(str)
+				if err != nil {
+					return err
+				}
+				slice.Index(i).SetInt(int64(val))
+			}
+			field.Set(slice)
+		default:
+			return errors.New("unsupported slice element type")
+		}
 	default:
-		err = errors.New("unsupported field type")
-		return
+		return errors.New("unsupported field type")
 	}
+	return nil
 }
