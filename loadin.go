@@ -1,22 +1,23 @@
 package envar
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
+	"strings"
 )
 
-// TODO: Improve!!!
 func loadInStruct(envMap map[string]string, target any) (err error) {
-	value := reflect.ValueOf(target)
-	if value.Kind() != reflect.Pointer || value.Elem().Kind() != reflect.Struct {
+	targetValue := reflect.ValueOf(target)
+	if targetValue.Kind() != reflect.Pointer || targetValue.Elem().Kind() != reflect.Struct {
 		err = fmt.Errorf("target must be a pointer to a struct")
 	}
 
-	structValue := value.Elem()
+	targetStruct := targetValue.Elem()
 
 	for key, value := range envMap {
-		field := structValue.FieldByNameFunc(func(s string) bool {
-			// TODO: Improve field identification?
+		field := targetStruct.FieldByNameFunc(func(s string) bool {
 			return s == key
 		})
 		if !field.IsValid() {
@@ -28,12 +29,42 @@ func loadInStruct(envMap map[string]string, target any) (err error) {
 			return
 		}
 
-		convertedValue := reflect.ValueOf(value)
-		if convertedValue.Type() != field.Type() {
-			convertedValue = convertedValue.Convert(field.Type())
+		if reflect.ValueOf(value).Type() != field.Type() {
+			converted, err := convertValue(value, field.Type())
+			if err != nil {
+				return err
+			}
+			field.Set(reflect.ValueOf(converted))
+		} else {
+			field.Set(reflect.ValueOf(value))
 		}
-
-		field.Set(convertedValue)
 	}
+
 	return
+}
+
+func convertValue(value string, fieldType reflect.Type) (converted any, err error) {
+	switch fieldType.String() {
+	case "int":
+		converted, err = strconv.Atoi(value)
+		return
+	case "[]string":
+		converted = strings.Split(value, ",")
+		return
+	case "[]int":
+		convertedSlice := []int{}
+		for _, element := range strings.Split(value, ",") {
+			parsed, err := strconv.Atoi(element)
+			if err != nil {
+				return nil, err
+			}
+			convertedSlice = append(convertedSlice, parsed)
+		}
+		converted = convertedSlice
+		fmt.Println(converted)
+		return
+	default:
+		err = errors.New("unsupported field type")
+		return
+	}
 }
