@@ -138,7 +138,7 @@ func TestQuoted(t *testing.T) {
 		"OPTION_E": "1",
 		"OPTION_F": "2",
 		"OPTION_G": "",
-		// "OPTION_H": "\n", // FIXME
+		"OPTION_H": "\\n",
 		"OPTION_I": "echo 'asd'",
 	}
 
