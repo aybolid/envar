@@ -12,8 +12,6 @@ const (
 	inlineComment = " #"
 )
 
-var escapedChars = [...]byte{'$'} // Do I need this?
-
 func parse(buf *bytes.Buffer) (envMap map[string]string, err error) {
 	lines, err := getValidLines(buf)
 	if err != nil {
@@ -75,15 +73,7 @@ func extractValue(src []byte) (value string, err error) {
 		}
 	}
 
-	value = string(handleEscapedSequences(src))
-	return
-}
-
-func handleEscapedSequences(src []byte) (formatted []byte) {
-	formatted = src
-	for _, char := range escapedChars {
-		formatted = bytes.ReplaceAll(formatted, []byte{'\\', char}, []byte{char})
-	}
+	value = string(src)
 	return
 }
 
