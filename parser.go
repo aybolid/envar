@@ -25,7 +25,7 @@ func parse(buf *bytes.Buffer) (envMap map[string]string, err error) {
 		if err != nil {
 			return nil, err
 		}
-		value, err := extractValue(rest)
+		value, err := extractValue(rest, &envMap)
 		if err != nil {
 			return nil, err
 		}
@@ -52,7 +52,7 @@ func extractKey(src []byte) (key string, rest []byte, err error) {
 	return
 }
 
-func extractValue(src []byte) (value string, err error) {
+func extractValue(src []byte, envMap *map[string]string) (value string, err error) {
 	if len(src) == 0 {
 		return
 	}
@@ -73,7 +73,46 @@ func extractValue(src []byte) (value string, err error) {
 		}
 	}
 
+	src, err = substituteValue(src, envMap)
+
 	value = string(src)
+	return
+}
+
+func substituteValue(src []byte, envMap *map[string]string) (substituted []byte, err error) {
+	if len(*envMap) == 0 {
+		return src, nil
+	}
+
+	substituted = src
+
+	for key, value := range *envMap {
+		target := []byte(key)
+		targetValue := []byte(value)
+
+		target = append([]byte{'$', '{'}, target...)
+
+		targetIdx := bytes.Index(substituted, target)
+		for targetIdx != -1 {
+			targetEnd := substituted[targetIdx+len(target)]
+			if targetEnd != '}' {
+				err = fmt.Errorf("invalid substitution format in %q", string(src))
+				return
+			}
+
+			substituted = bytes.Replace(substituted, append(target, targetEnd), targetValue, 1)
+
+			targetIdx = bytes.Index(substituted, target)
+		}
+
+		target = append([]byte{'$'}, target[2:]...)
+		targetIdx = bytes.Index(substituted, target)
+		for targetIdx != -1 {
+			substituted = bytes.Replace(substituted, target, targetValue, 1)
+			targetIdx = bytes.Index(substituted, target)
+		}
+	}
+
 	return
 }
 

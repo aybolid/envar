@@ -192,3 +192,26 @@ func TestParsingError(t *testing.T) {
 		logError(t, errMsg)
 	}
 }
+
+func TestSubstituiton(t *testing.T) {
+	envFile := "test/fixtures/substitution.env"
+	expected := map[string]string{
+		"HELLO": "hello",
+		"WORLD": "world",
+		"MSG":   "hello world",
+		"MSG2":  "hello world",
+		"MSG3":  "hello world",
+		"MSG4":  "hello hello world world",
+	}
+
+	buf, err := getFileBuffer(envFile)
+	if err != nil {
+		t.Error(err)
+	}
+	envMap, err := parse(&buf)
+	if err != nil {
+		t.Error(err)
+	}
+
+	compare(t, envMap, expected)
+}
